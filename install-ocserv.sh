@@ -42,7 +42,7 @@ certbot certonly \
     --dns-cloudflare-credentials /etc/letsencrypt/certbot_cf.ini -d $DOMAIN -n
 
 cat > /etc/letsencrypt/renewal-hooks/post/001-restart-ocserv.sh << EOF
-#!/bin/bash
+#!/bin/sh
 systemctl restart ocserv.service
 EOF
 chmod +x /etc/letsencrypt/renewal-hooks/post/001-restart-ocserv.sh
