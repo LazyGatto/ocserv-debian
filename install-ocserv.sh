@@ -5,6 +5,8 @@ read -p "Enter Domain for this server: " DOMAIN
 read -p "Enter CloudFlare API Key: " CF_API_KEY
 read -p "Enter CloudFlare Email: " CF_EMAIL
 read -p "Enter Camouflage Secret for this server: " SECRET
+read -p "Enter listening port value for OCServ [443]: " PORT
+PORT=${PORT:-443}
 
 apt update && apt upgrade -y
 apt-get install -y nftables libgnutls28-dev libev-dev autoconf make automake git \
@@ -30,6 +32,7 @@ cat > /etc/letsencrypt/certbot_cf.ini << EOF
 dns_cloudflare_email = $CF_EMAIL
 dns_cloudflare_api_key = $CF_API_KEY
 EOF
+chmod 600 /etc/letsencrypt/certbot_cf.ini
 
 certbot certonly \
     --agree-tos \
@@ -37,6 +40,12 @@ certbot certonly \
     --dns-cloudflare \
     --dns-cloudflare-propagation-seconds 30 \
     --dns-cloudflare-credentials /etc/letsencrypt/certbot_cf.ini -d $DOMAIN -n
+
+cat > /etc/letsencrypt/renewal-hooks/post/001-restart-ocserv.sh << EOF
+#!/bin/bash
+systemctl restart ocserv.service
+EOF
+chmod +x /etc/letsencrypt/renewal-hooks/post/001-restart-ocserv.sh
 
 ### Create support files for control ocserv
 # Add, modify user
@@ -147,8 +156,8 @@ mkdir /etc/ocserv
 
 cat > /etc/ocserv/ocserv.conf << EOF
 auth = "plain[passwd=/etc/ocserv/ocpasswd]"
-tcp-port = 443
-udp-port = 443
+tcp-port = $PORT
+udp-port = $PORT
 run-as-user = ocserv
 run-as-group = ocserv
 socket-file = /var/run/ocserv-socket
